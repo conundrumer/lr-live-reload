@@ -18,6 +18,10 @@ const commitTrackChanges = () => ({
   type: "COMMIT_TRACK_CHANGES"
 });
 
+/* selectors */
+const getSimulatorTrack = state => state.simulator.engine;
+const getSimulatorCommittedTrack = state => state.simulator.committedEngine;
+
 /* init */
 if (window.registerCustomTool) {
   main();
@@ -48,8 +52,19 @@ function main() {
 
       this.state = {
         count: 0,
+        changed: false,
         status: "Not Connected"
       };
+
+      store.subscribe(() => {
+        const changed =
+          getSimulatorTrack(store.getState()) !==
+          getSimulatorCommittedTrack(store.getState());
+        if (changed !== this.state.changed) {
+          this.setState({ changed });
+        }
+      });
+
       this.ws = new WebSocket(`ws://${host}:${port}`);
 
       this.ws.addEventListener("open", () => {
@@ -124,7 +139,14 @@ function main() {
       return e("div", null, [
         `${this.state.status}: ${this.state.count}`,
         e("div", null, [
-          e("button", { onClick: this.onCommit.bind(this) }, "Commit"),
+          e(
+            "button",
+            {
+              onClick: this.onCommit.bind(this),
+              disabled: !this.state.changed
+            },
+            "Commit"
+          ),
           e("button", { onClick: this.onReload.bind(this) }, "Reload")
         ])
       ]);
