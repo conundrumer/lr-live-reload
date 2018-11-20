@@ -4,7 +4,7 @@
 // @version      0.1
 // @description  Live reloaded scripting
 // @author       David Lu
-// @match        http://127.0.0.1:8080/
+// @include      http://127.0.0.1:8080/*
 // @match        https://www.linerider.com/*
 // @grant        none
 // ==/UserScript==
