@@ -5,9 +5,10 @@ const { store } = window;
 export default function init() {
   const track = getSimulatorTrack(store.getState());
 
-  store.dispatch(addLines(Worlds.worldA(track)));
+  // store.dispatch(addLines(Worlds.worldA(track)));
+  store.dispatch(addLines(Worlds.worldAout(track)));
   store.dispatch(addLines(Worlds.worldB(track)));
-  store.dispatch(addLines(Worlds.worldC(track)));
+  // store.dispatch(addLines(Worlds.worldC(track)));
 }
 
 export function unload() {

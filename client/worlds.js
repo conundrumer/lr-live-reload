@@ -3,6 +3,14 @@ import { TriConnector, HexConnector, RhoConnector } from "./connector.js";
 import { triangleLattice, triangleTess } from "./tess.js";
 import V2 from "./V2.js";
 
+import "//cdnjs.cloudflare.com/ajax/libs/seedrandom/2.4.4/seedrandom.min.js";
+
+function makeRng() {
+  if (Math.seedrandom) {
+    return new Math.seedrandom("vibrations");
+  }
+  return Math.random;
+}
 /*
 1. lattice
 2. warp
@@ -50,14 +58,15 @@ function beatShift(beat, mod, shift, p, offset = 0) {
 }
 
 export function worldA(track) {
+  const rng = makeRng();
   const getPos = i => track.getRider(i).position;
   const tempTan = V2.from(0, 0);
   const getTan = i => tempTan.set(getPos(i + 0.5)).sub(getPos(i - 0.5));
 
-  const startTime = 47 * 40 + 23;
+  const startTime = 47 * 40 + 22;
   const endTime = (1 * 60 + 29) * 40 + 10;
   const W = endTime - startTime + 1;
-  const H = 18;
+  const H = 19;
   const lattice = triangleLattice(W, H);
 
   for (let i = 0; i < lattice.length; i++) {
@@ -73,17 +82,22 @@ export function worldA(track) {
     mod = Math.sign(mod) * Math.pow(Math.abs(mod), 0.4);
 
     mod = 0.5 + 0.5 * mod;
-    if (beat < 8 * 4 - 0.5) {
+    if (beat < 0.5) {
+      // hold
+    } else if (beat < 8 * 4 - 0.5) {
       beatShift(beat, mod, leftRightShift, p);
     } else if (beat < 16 * 4 - 0.5) {
       beatShift(beat, mod, hexShift, p, 4);
-    } else {
+    } else if (beat < (16 + 12) * 4 - 0.5) {
       beatShift(beat, mod, starShift, p);
+    } else {
+      // hold
+      beatShift(beat, 0, hexShift, p, 4);
     }
 
     /* translate */
     p.x += startTime + 0.5;
-    p.y -= (H + 1) / Math.sqrt(3) / 2;
+    p.y -= (H - 0) / Math.sqrt(3) / 2;
 
     /* map to spacetime */
     const pos = getPos(p.x);
@@ -93,14 +107,63 @@ export function worldA(track) {
     p.y = pos.y + norm.y * p.y;
 
     /* final warp */
-    p.x += vibMod * (2 * Math.random() - 1);
-    p.y += vibMod * (2 * Math.random() - 1);
+    if (beat < (16 + 12) * 4 - 0.5) {
+      p.x += vibMod * (2 * rng() - 1);
+      p.y += vibMod * (2 * rng() - 1);
+    }
+  }
+
+  return triangleTess(W, H, lattice, HexConnector);
+}
+
+export function worldAout(track) {
+  const rng = makeRng();
+  const getPos = i => track.getRider(i).position;
+  const tempTan = V2.from(0, 0);
+  const getTan = i => tempTan.set(getPos(i + 0.5)).sub(getPos(i - 0.5));
+
+  const startTime = (1 * 60 + 29) * 40 + 10;
+  const endTime = (1 * 60 + 32) * 40 + 59;
+  // const endTime = (1 * 60 + 33) * 40 + 20;
+  const W = endTime - startTime + 1;
+  const H = 19;
+  const lattice = triangleLattice(W, H);
+
+  for (let i = 0; i < lattice.length; i++) {
+    const p = lattice[i];
+    const { x, y } = p;
+    /* warp */
+    const beat = ((p.x / 30) * 121) / 60;
+
+    const mod = Math.pow(1.035, beat) - 1;
+
+    let vibMod = 0 * mod;
+
+    p.x *= 1 + mod;
+
+    /* translate */
+    p.x += startTime + 0.5;
+    p.y -= (H - 0) / Math.sqrt(3) / 2;
+
+    p.y *= 1 + 2 * mod;
+
+    /* map to spacetime */
+    const pos = getPos(p.x);
+    let norm = getTan(p.x).rotCW();
+
+    p.x = pos.x + norm.x * p.y;
+    p.y = pos.y + norm.y * p.y;
+
+    /* final warp */
+    p.x += vibMod * (2 * rng() - 1);
+    p.y += vibMod * (2 * rng() - 1);
   }
 
   return triangleTess(W, H, lattice, HexConnector);
 }
 
 export function worldB(track) {
+  const rng = makeRng();
   const getRawPos = i => {
     const rider = track.getRawRider(i);
     return new V2(rider.points[1].pos).add(rider.points[2].pos).div(2);
@@ -118,7 +181,7 @@ export function worldB(track) {
   const tempTan = V2.from(0, 0);
   const getTan = i => tempTan.set(getPos(i + 0.5)).sub(getPos(i - 0.5));
 
-  const startTime = (1 * 60 + 35) * 40 + 7;
+  const startTime = (1 * 60 + 35) * 40 + 22;
   const endTime = (1 * 60 + 47) * 40 + 3;
   const W = endTime - startTime + 1;
   const H = 16;
@@ -131,9 +194,9 @@ export function worldB(track) {
     const beat = ((p.x / 30) * 121) / 60;
     let mod = 25 * Math.pow(1 - (beat % 1), 4);
     // do not mod on first beat
-    if (Math.floor(beat) === 0) {
-      mod = 0;
-    }
+    // if (Math.floor(beat) === 0) {
+    //   mod = 0;
+    // }
 
     /* translate */
     p.x += startTime + 0.5;
@@ -154,10 +217,10 @@ export function worldB(track) {
 
     /* final warp */
     if (platform) {
-      p.x += mod * (2 * Math.random() - 1);
+      p.x += mod * (2 * rng() - 1);
     } else {
-      p.x += mod * (2 * Math.random() - 1);
-      p.y += mod * (2 * Math.random() - 1);
+      p.x += mod * (2 * rng() - 1);
+      p.y += mod * (2 * rng() - 1);
     }
   }
 
@@ -178,6 +241,7 @@ export function worldC(track) {
   const lines = [];
 
   [0, 1].forEach(s => {
+    const rng = makeRng();
     const lattice = triangleLattice(W, H);
 
     for (let i = 0; i < lattice.length; i++) {
@@ -214,8 +278,8 @@ export function worldC(track) {
       p.y = pos.y + norm.y * p.y;
 
       /* final warp */
-      p.x += vibMod * (2 * Math.random() - 1);
-      p.y += vibMod * (2 * Math.random() - 1);
+      p.x += vibMod * (2 * rng() - 1);
+      p.y += vibMod * (2 * rng() - 1);
     }
     lines.push(...triangleTess(W, H, lattice, HexConnector));
   });
